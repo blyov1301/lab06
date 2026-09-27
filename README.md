@@ -77,6 +77,7 @@ CPack: - package: /home/vboxuser/workspace/lab06/_build/lab06-0.1.0.0-Linux.rpm 
 ## Инициализация и очистка сценариев автоматизации
 
 *mkdir -p .github/workflows
+
 ls -la .github/workflows/*
 
 Вывод:
