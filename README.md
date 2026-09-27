@@ -1,82 +1,188 @@
-# Лабораторная работа №5: Изучение фреймворков для тестирования на примере GTest
+# Лабораторная работа №6: Изучение средств пакетирования на примере CPack
 
 **Студент:** Литошенко Григорий
 
 **GitHub Username:** blyov1301
 
-Данная лабораторная работа посвещена изучению фреймворков для тестирования на примере **GTest**
+Данная лабораторная работа посвещена изучению средств пакетирования на примере CPack; настройка CI так, чтобы при появлении тега автоматически собирались пакеты (.deb, .rpm, .tar.gz, .msi, .dmg) и прикреплялись к GitHub Release.
 
-## CI/CD Status
-*Travis CI:* сборка и тесты проходят успешно на gcc и clang
+## Сборка проекта и локальная генерация пакетов
 
-*Coveralls:* отчёт о покрытии кода генерируется автоматически
+*cmake -H. -B_build*
 
-## Building
-
-Проект собирается с помощью CMake. Для сборки тестов используется флаг **BUILD_TESTS**.
+Вывод:
 
 ```bash
-cmake -H. -B_build -DBUILD_TESTS=ON
-cmake --build _build
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/vboxuser/workspace/lab06/_build
 ```
-*Вывод:*
+*cmake --build _build*
+
+Вывод:
 
 ```bash
-[  7%] Building CXX object third-party/gtest/googletest/CMakeFiles/gtest.dir/src/gtest-all.cc.o
-[ 14%] Linking CXX static library ../../../lib/libgtest.a
-[ 14%] Built target gtest
-[ 21%] Building CXX object third-party/gtest/googletest/CMakeFiles/gtest_main.dir/src/gtest_main.cc.o
-[ 28%] Linking CXX static library ../../../lib/libgtest_main.a
-[ 28%] Built target gtest_main
-[ 35%] Building CXX object banking/CMakeFiles/banking.dir/Account.cpp.o
-[ 42%] Building CXX object banking/CMakeFiles/banking.dir/Transaction.cpp.o
-[ 50%] Linking CXX static library libbanking.a
-[ 50%] Built target banking
-[ 57%] Building CXX object CMakeFiles/check.dir/tests/account_test.cpp.o
-[ 64%] Building CXX object CMakeFiles/check.dir/tests/transaction_test.cpp.o
-[ 71%] Linking CXX executable check
-[ 71%] Built target check
-[ 78%] Building CXX object third-party/gtest/googlemock/CMakeFiles/gmock.dir/src/gmock-all.cc.o
-[ 85%] Linking CXX static library ../../../lib/libgmock.a
-[ 85%] Built target gmock
-[ 92%] Building CXX object third-party/gtest/googlemock/CMakeFiles/gmock_main.dir/src/gmock_main.cc.o
-[100%] Linking CXX static library ../../../lib/libgmock_main.a
-[100%] Built target gmock_main
+[ 18%] Built target formatter
+[ 36%] Built target formatter_ex
+[ 54%] Built target solver_lib
+[ 72%] Built target solver
+[100%] Built target banking
 ```
-## Running Tests
+*cd _build*
+
+После успешной компиляции была выполнена локальная проверка работоспособности утилиты cpack для создания архивов формата .tar.gz, .deb и .rpm.
+
+*cpack -G "TGZ"*
+
+Вывод:
 
 ```bash
-ctest --test-dir _build --output-on-failure
+CPack: Create package using TGZ
+CPack: Install projects
+CPack: - Run preinstall target for: lab06
+CPack: - Install project: lab06 []
+CPack: Create package
+CPack: - package: /home/vboxuser/workspace/lab06/_build/lab06-0.1.0.0-Linux.tar.gz generated.
 ```
-*Вывод:*
+
+*cpack -G "DEB"*
+
+Вывод:
 
 ```bash
-Internal ctest changing into directory: /home/vboxuser/workspace/lab05/_build
-Test project /home/vboxuser/workspace/lab05/_build
-    Start 1: check
-1/1 Test #1: check ............................   Passed    0.01 sec
-
-100% tests passed, 0 tests failed out of 1
-
-Total Test time (real) =   0.02 sec
+CPack: Create package using DEB
+CPack: Install projects
+CPack: - Run preinstall target for: lab06
+CPack: - Install project: lab06 []
+CPack: Create package
+-- CPACK_DEBIAN_PACKAGE_DEPENDS not set, the package will have no dependencies.
+CPack: - package: /home/vboxuser/workspace/lab06/_build/lab06-0.1.0.0-Linux.deb generated.
 ```
-## Code coverage
 
-| File | Coverage |
-|-------|---------|
-| `Account.cpp` | 100% ✅ |
-| `Transaction.cpp` |	100% ✅ |
-| **Total** | **100% ✅** |
+*cpack -G "RPM"*
 
-## Особенности реализации
+Вывод:
 
-    Account management: поддержка блокировки и разблокировки счёта, изменение баланса и получение текущего состояния.
+```bash
+CPack: Create package using RPM
+CPack: Install projects
+CPack: - Run preinstall target for: lab06
+CPack: - Install project: lab06 []
+CPack: Create package
+CPackRPM: Will use GENERATED spec file: /home/vboxuser/workspace/lab06/_build/_CPack_Packages/Linux/RPM/SPECS/solver-devel.spec
+CPack: - package: /home/vboxuser/workspace/lab06/_build/lab06-0.1.0.0-Linux.rpm generated.
+```
+*cd ..*
 
-    Isolated testing: тесты изолированы друг от друга — каждый создаёт собственные объекты Account и Transaction, что исключает влияние состояния между тестами.
+## Инициализация и очистка сценариев автоматизации
 
-    Error handling: покрыты случаи выброса исключений (std::runtime_error) при попытке изменить баланс незаблокированного счёта, а также std::logic_error и std::invalid_argument в транзакциях.
+*mkdir -p .github/workflows
+ls -la .github/workflows/*
 
-    Boundary cases: проверены граничные условия — отрицательная сумма, слишком маленькая сумма, слишком большая комиссия, перевод между одним и тем же счётом.
+Вывод:
 
-    Automated Reporting: интеграция с Coveralls для визуализации покрытия строк кода.
+```bash
+итого 16
+drwxrwxr-x 2 vboxuser vboxuser 4096 сен 26 19:32 .
+drwxrwxr-x 3 vboxuser vboxuser 4096 сен 26 18:38 ..
+-rw-rw-r-- 1 vboxuser vboxuser 1076 сен 26 18:38 ci.yml
+-rw-rw-r-- 1 vboxuser vboxuser 2118 сен 26 19:32 release.yml
+```
 
+## Настройка конфигурации GitHub Actions
+
+Содержимое *.github/workflows/release.yml*:
+
+```yaml
+name: Release Packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-deb-rpm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install tools
+        run: sudo apt-get update && sudo apt-get install -y rpm
+
+      - name: Configure
+        run: cmake -S . -B _build -DCPACK_GENERATOR="DEB;RPM;TGZ"
+
+      - name: Build
+        run: cmake --build _build
+
+      - name: Package
+        run: cmake --build _build --target package
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-packages
+          path: |
+            _build/*.deb
+            _build/*.rpm
+            _build/*.tar.gz
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            _build/*.deb
+            _build/*.rpm
+            _build/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-dmg:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure
+        run: cmake -S . -B _build -DCPACK_GENERATOR="DragNDrop"
+
+      - name: Build
+        run: cmake --build _build
+
+      - name: Package
+        run: cmake --build _build --target package
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: _build/*.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-msi:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure
+        run: cmake -S . -B _build -DCPACK_GENERATOR="WIX" -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        run: cmake --build _build --config Release
+
+      - name: Package
+        run: cmake --build _build --config Release --target package
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: _build/*.msi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
